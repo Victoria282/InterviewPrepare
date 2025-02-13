@@ -7,15 +7,30 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.intl.Locale
-import androidx.compose.ui.text.toUpperCase
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.interviewprepare.collections.CollectionsUtils
-import com.example.interviewprepare.strings.StringUtils
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.interviewprepare.app.screens.ListScreen
+import com.example.interviewprepare.app.vm.ActivityViewModel
+import com.example.interviewprepare.architecture.patterns.builder.CarBuilder
+import com.example.interviewprepare.architecture.patterns.decorator.MilkDecorator
+import com.example.interviewprepare.architecture.patterns.decorator.SimpleCoffee
+import com.example.interviewprepare.architecture.patterns.factory.AnimalFactory
+import com.example.interviewprepare.architecture.patterns.factory.Animals
+import com.example.interviewprepare.architecture.patterns.observer.Display
+import com.example.interviewprepare.architecture.patterns.observer.WeatherStation
+import com.example.interviewprepare.architecture.patterns.singleton.Singleton
+import com.example.interviewprepare.architecture.patterns.strategy.Customer
+import com.example.interviewprepare.architecture.patterns.strategy.DiscountCalculator
+import com.example.interviewprepare.architecture.patterns.strategy.MembershipType
+import com.example.interviewprepare.architecture.patterns.strategy.PremiumCustomerDiscountStrategy
+import com.example.interviewprepare.architecture.patterns.strategy.RegularCustomerDiscountStrategy
 import com.example.interviewprepare.ui.theme.InterviewPrepareTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,12 +43,6 @@ class MainActivity : ComponentActivity() {
         https://carrion.dev/en/posts/design-patterns-1/
      */
 
-    private var girl: String = ""
-        get() = field.toUpperCase(Locale.current)
-        set(value) {
-            field = "Имя - $value"
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -45,127 +54,103 @@ class MainActivity : ComponentActivity() {
         showObserver()
         setContent {
             InterviewPrepareTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                Content()
             }
         }
-        val woman = User("Victoria", 24)
-        val woman2 = User("Victoria", 24)
-        val man = User("Ilya", 30)
-
-        Log.e("Interview", "woman == is ${woman == woman2}")
-        Log.e("Interview", "woman equals is ${woman.equals(woman2)}")
-        Log.e("Interview", "woman === is ${woman === woman2}")
-
-        Log.e("Interview", "woman == man is ${woman == man}")
-        Log.e("Interview", "woman equals man is ${woman.equals(man)}")
-        Log.e("Interview", "woman === man is ${woman === man}")
-
-        StringUtils()
-        CollectionsUtils()
-    }
-}
-data class User(
-    val name: String,
-    val age: Int
-)
-
-fun showBuilder() {
-    val car = com.example.interviewprepare.architecture.patterns.builder.CarBuilder()
-        .setColor("Black")
-        .setBrand("audi")
-        .setYear("2025")
-        .setModel("Q7")
-        .build()
-    Log.e("Interview", "$car")
-}
-
-fun showFactory() {
-    val dog = com.example.interviewprepare.architecture.patterns.factory.AnimalFactory()
-        .createAnimal(com.example.interviewprepare.architecture.patterns.factory.Animals.DOG)
-    dog.voice()
-}
-
-fun showStrategy() {
-    val customer = com.example.interviewprepare.architecture.patterns.strategy.Customer(
-        name = "Victoria",
-        membershipType = com.example.interviewprepare.architecture.patterns.strategy.MembershipType.PREMIUM
-    )
-    val book = com.example.interviewprepare.architecture.patterns.strategy.Book(
-        "War and Peace",
-        1000.0
-    )
-    val discountStrategy = createDiscountCalculator(customer)
-    val discountOfBook = discountStrategy.calculateDiscount(book)
-    Log.e("Interview", "discountOfBook= ${discountOfBook}")
-}
-
-private fun createDiscountCalculator(customer: com.example.interviewprepare.architecture.patterns.strategy.Customer): com.example.interviewprepare.architecture.patterns.strategy.DiscountCalculator {
-    val discountStrategy = when (customer.membershipType) {
-        com.example.interviewprepare.architecture.patterns.strategy.MembershipType.REGULAR -> com.example.interviewprepare.architecture.patterns.strategy.RegularCustomerDiscountStrategy()
-        com.example.interviewprepare.architecture.patterns.strategy.MembershipType.PREMIUM -> com.example.interviewprepare.architecture.patterns.strategy.PremiumCustomerDiscountStrategy()
     }
 
-    return com.example.interviewprepare.architecture.patterns.strategy.DiscountCalculator(
-        discountStrategy
-    )
-}
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun Content() {
+        val viewModel: ActivityViewModel = viewModel(factory = ActivityViewModel.factory)
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(title = {
+                    Text(text = stringResource(R.string.app_name))
+                })
+            }
+        ) {
+            Surface(modifier = Modifier
+                .fillMaxSize()
+                .padding(it)) {
+                ListScreen(
+                    viewModel.booksUiState, retryAction = {
+                        viewModel.getBooks("book")
+                    },
+                    Modifier
+                )
+            }
+        }
+    }
 
-private fun showSingleton() {
-    Log.e(
-        "Interview",
-        com.example.interviewprepare.architecture.patterns.singleton.Singleton.someProperty
-    )
-    com.example.interviewprepare.architecture.patterns.singleton.Singleton.doSomething()
+    fun showBuilder() {
+        val car = CarBuilder()
+            .setColor("Black")
+            .setBrand("audi")
+            .setYear("2025")
+            .setModel("Q7")
+            .build()
+        Log.e("Interview", "$car")
+    }
 
-    com.example.interviewprepare.architecture.patterns.singleton.Singleton.someProperty =
-        "Updated Value"
-    com.example.interviewprepare.architecture.patterns.singleton.Singleton.doSomething()
-}
+    fun showFactory() = AnimalFactory().createAnimal(Animals.DOG).voice()
 
-private fun showDecorator() {
-    val coffee = com.example.interviewprepare.architecture.patterns.decorator.SimpleCoffee()
-    Log.e("Interview", "coffee= ${coffee.cost()}; ${coffee.ingredients()}")
+    fun showStrategy() {
+        val customer = Customer(
+            name = "Victoria",
+            membershipType = MembershipType.PREMIUM
+        )
+        val book = com.example.interviewprepare.architecture.patterns.strategy.Book(
+            "War and Peace",
+            1000.0
+        )
+        val discountStrategy = createDiscountCalculator(customer)
+        val discountOfBook = discountStrategy.calculateDiscount(book)
+        Log.e("Interview", "discountOfBook= ${discountOfBook}")
+    }
 
-    val coffeeWithMilk =
-        com.example.interviewprepare.architecture.patterns.decorator.MilkDecorator(coffee)
-    Log.e("Interview", "coffeeWithMilk= ${coffeeWithMilk.cost()}; ${coffeeWithMilk.ingredients()}")
-}
+    private fun createDiscountCalculator(customer: Customer): DiscountCalculator {
+        val discountStrategy = when (customer.membershipType) {
+            MembershipType.REGULAR -> RegularCustomerDiscountStrategy()
+            MembershipType.PREMIUM -> PremiumCustomerDiscountStrategy()
+        }
 
-private fun showObserver() {
-    val weatherStation =
-        com.example.interviewprepare.architecture.patterns.observer.WeatherStation()
+        return DiscountCalculator(discountStrategy)
+    }
 
-    val display1 = com.example.interviewprepare.architecture.patterns.observer.Display("Дисплей 1")
-    val display2 = com.example.interviewprepare.architecture.patterns.observer.Display("Дисплей 2")
+    private fun showSingleton() {
+        Log.e("Interview", Singleton.someProperty)
+        Singleton.doSomething()
+        Singleton.someProperty = "Updated Value"
+        Singleton.doSomething()
+    }
 
-    weatherStation.addObserver(display1)
-    weatherStation.addObserver(display2)
+    private fun showDecorator() {
+        val coffee = SimpleCoffee()
+        Log.e("Interview", "coffee= ${coffee.cost()}; ${coffee.ingredients()}")
 
-    weatherStation.setTemperature(25.0f)
-    weatherStation.setTemperature(30.5f)
+        val coffeeWithMilk = MilkDecorator(coffee)
+        Log.e(
+            "Interview",
+            "coffeeWithMilk= ${coffeeWithMilk.cost()}; ${coffeeWithMilk.ingredients()}"
+        )
+    }
 
-    weatherStation.removeObserver(display1)
+    private fun showObserver() {
+        val weatherStation = WeatherStation()
 
-    weatherStation.setTemperature(28.0f)
-}
+        val display1 = Display("Дисплей 1")
+        val display2 = Display("Дисплей 2")
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+        weatherStation.addObserver(display1)
+        weatherStation.addObserver(display2)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    InterviewPrepareTheme {
-        Greeting("Android")
+        weatherStation.setTemperature(25.0f)
+        weatherStation.setTemperature(30.5f)
+
+        weatherStation.removeObserver(display1)
+
+        weatherStation.setTemperature(28.0f)
     }
 }
